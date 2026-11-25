@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#8fd3ff">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Alex' Insel</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Offline copy of the whole game (only on the real https site; the local dev server stays uncached)
+    if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
+  </script>
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="touch-layer"></div>
+  <div id="hud" class="hidden"></div>
+  <div id="loading"><div class="spinner"></div><p>Die Insel wird gebaut …</p></div>
+  <noscript>Dieses Spiel braucht JavaScript.</noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
