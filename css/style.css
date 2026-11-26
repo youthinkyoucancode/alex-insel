@@ -366,3 +366,27 @@ button, .btn, .slot, #tool, #bag { touch-action: manipulation; -webkit-touch-cal
 #stunt ~ #photo, #hud #photo { top: 50%; }
 
 #label { left: 0 !important; top: 0 !important; will-change: transform; }
+
+/* Small or unusual windows (e.g. the Amazon Kids browser, whose own bars take part of the screen) */
+#start { overflow-y: auto; }
+@media (max-height: 560px) {
+  #start { gap: 10px; padding: 12px; }
+  #start h1 { font-size: min(9vw, 15vh); }
+  #start p { font-size: 20px; }
+  .swatches { gap: 14px; }
+  .swatch { width: 64px; height: 64px; border-radius: 20px; border-width: 4px; }
+  #start .herobtn { margin: 0 auto; padding: 6px 18px; }
+  #start .go, .heroed .go { font-size: 28px; padding: 12px 34px 12px 26px; }
+  .heroed .go { margin-top: 8px; }
+  .sheet { padding: 16px 22px; max-height: 94vh; }
+  .heroed h2 { margin-bottom: 6px; }
+  .hero-pic { width: min(170px, 46vh); height: min(170px, 46vh); }
+}
+@media (max-width: 640px) {
+  .swatches { flex-wrap: wrap; max-width: 92vw; }
+  .hero-ed { flex-direction: column; }
+  .hero-side { align-items: center; }
+  .hero-side .parts, .hero-side .colors { justify-content: center; }
+  #start .go { font-size: 30px; }
+  .heroed .go { display: flex; width: fit-content; margin-left: auto; margin-right: auto; }
+}

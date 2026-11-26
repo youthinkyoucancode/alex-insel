@@ -1489,7 +1489,7 @@ hud.on('settings', () => {
 });
 
 // ---------- hero editor: Alex paints his own hero ----------
-const heroPic = (cfg) => { const h = makeHero(cfg); h.rotation.y = 0.5; return snapshot(h, 240, 1.45); };
+const heroPic = (cfg) => { const h = makeHero(cfg); h.rotation.y = 0.5; return snapshot(h, 240, 1.95); };   // far enough to show him head (and hat) to shoes
 function setHero(cfg) {
   state.hero = cfg; persist();
   const vis = hero.visible; scene.remove(hero); hero = makeHero(cfg); hero.visible = vis; scene.add(hero);
