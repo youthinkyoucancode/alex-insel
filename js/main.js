@@ -1521,6 +1521,7 @@ function showStart() {
   sw.after(hb);
   function goFullscreen() {   // full screen + landscape, like an installed game (no-op when the home-screen app already is full screen)
     if (!isTouch || document.fullscreenElement || !document.documentElement.requestFullscreen) return;
+    if (/AlexInselApp/.test(navigator.userAgent)) return;   // the tablet app is already full screen + landscape
     if (window.matchMedia?.('(display-mode: fullscreen)').matches) return;
     document.documentElement.requestFullscreen({ navigationUI: 'hide' })
       .then(() => screen.orientation?.lock?.('landscape').catch(() => {}))
