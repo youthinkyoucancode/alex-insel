@@ -390,3 +390,7 @@ button, .btn, .slot, #tool, #bag { touch-action: manipulation; -webkit-touch-cal
   #start .go { font-size: 30px; }
   .heroed .go { display: flex; width: fit-content; margin-left: auto; margin-right: auto; }
 }
+
+/* Touch screens: keep every button away from the top and bottom edges. Android shows the clock and the
+   navigation bar when a finger starts at the very edge, and no web page can switch that off. */
+@media (pointer: coarse) { #hud { inset: 22px 0; } }
