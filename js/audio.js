@@ -31,10 +31,13 @@ function germanVoice() {
 }
 
 // Speech queue: lines wait their turn instead of cutting each other off.
-//   now:  the child tapped a speaker -> say it right away (clears the queue)
-//   low:  nice-to-have (a word on discovery, "click!") -> dropped if something else is talking
-//   tag:  a newer line with the same tag replaces an older one that hasn't started yet (mission steps)
+//   now:   the child tapped something -> say it right away. Other chatter is dropped, but a mission
+//          instruction ('step') is never lost: an interrupted one starts again afterwards.
+//   low:   nice-to-have (a word on discovery, "click!") -> dropped if something else is talking
+//   tag:   a newer line with the same tag replaces an older one that hasn't started yet (mission steps)
+//   valid: checked just before the line starts; a line that no longer fits (step already done) is skipped
 const queue = [];
+const GAP_MS = 520;   // a short breath between two lines
 let playing = null, gap = 0;
 export function stopVoice(clear = true) {
   if (clear) queue.length = 0;
@@ -43,32 +46,44 @@ export function stopVoice(clear = true) {
   if (playing?.subtitle) onSubtitle(playing.text, false);
   playing = null;
 }
+export function dropTag(tag) { for (let i = queue.length - 1; i >= 0; i--) if (queue[i].tag === tag) queue.splice(i, 1); }
 export const isTalking = () => !!playing || queue.length > 0;
-export function say(key, text, { now = false, low = false, tag = null, subtitle = true } = {}) {
+export function say(key, text, { now = false, low = false, tag = null, subtitle = true, valid = null } = {}) {
   if (!text) return;
-  if (now) { stopVoice(true); clearTimeout(gap); gap = 0; }   // asked for by the child: right away
-  else {
+  const item = { key, text, subtitle, tag, valid, replays: 0 };
+  if (now) {   // asked for by the child: right away
+    const was = playing;
+    stopVoice(false); clearTimeout(gap); gap = 0;
+    for (let i = queue.length - 1; i >= 0; i--) if (queue[i].tag !== 'step' || queue[i].text === text) queue.splice(i, 1);
+    if (was && was.tag === 'step' && was.text !== text && was.replays < 2 && !queue.some((q) => q.tag === 'step')) {
+      was.replays++; queue.unshift(was);   // the interrupted instruction comes back after the child's line
+    }
+    queue.unshift(item);
+  } else {
     if (playing?.text === text || queue.some((q) => q.text === text)) return;
     if (low && (playing || queue.length)) return;
-    if (tag) for (let i = queue.length - 1; i >= 0; i--) if (queue[i].tag === tag) queue.splice(i, 1);
+    if (tag) dropTag(tag);
+    queue.push(item);
   }
-  queue.push({ key, text, subtitle, tag });
   if (!playing && !gap) next();
 }
 function next() {
   if (playing) return;
-  const it = queue.shift(); if (!it) return;
+  let it = queue.shift();
+  while (it && it.valid && !it.valid()) it = queue.shift();
+  if (!it) return;
   playing = it;
+  const run = {}; it.run = run;   // a replayed line gets a new run, so the old run's timers can't end it early
   window.__probeSend?.('say', { text: it.text.slice(0, 90) });   // dev playtest log only (no-op in the real game)
   if (it.subtitle) onSubtitle(it.text, true);
   const done = () => {
-    if (playing !== it) return;
+    if (playing !== it || it.run !== run) return;
     if (it.subtitle) onSubtitle(it.text, false);
     playing = null; current = null;
-    gap = setTimeout(() => { gap = 0; next(); }, 280);
+    gap = setTimeout(() => { gap = 0; next(); }, GAP_MS);
   };
   play(it.key, it.text, done);
-  setTimeout(done, 4000 + it.text.length * 110);   // safety: a stalled audio file must never block the queue
+  setTimeout(done, 5000 + it.text.length * 130);   // safety: a stalled audio file must never block the queue
 }
 // each long recording is loaded once into memory (a blob URL is always seekable, whatever the web server supports)
 const partUrls = new Map();
@@ -77,12 +92,15 @@ function partUrl(file) {
   return partUrls.get(file);
 }
 export function preloadVoice() { for (const f of new Set(Object.values(natural).map((v) => v[0]))) partUrl(f).catch(() => {}); }
-function playPart(file, start, end, done, fallback) {   // play one line out of a long recording, stop at its end
+// rate < 1 slows a line that was spoken too fast in the recording (dev/el-rates.mjs); the pitch stays natural
+function playPart(file, start, end, rate, done, fallback) {   // play one line out of a long recording, stop at its end
   let cancelled = false, timer = 0, a = null;
   current = { pause: () => { cancelled = true; clearInterval(timer); a?.pause(); }, onended: null };
   partUrl(file).then((url) => {
     if (cancelled) return;
     a = new Audio(url); a.volume = settings.voice;
+    a.preservesPitch = true; a.webkitPreservesPitch = true;
+    a.defaultPlaybackRate = rate; a.playbackRate = rate;
     const finish = () => { clearInterval(timer); a.pause(); done(); };
     a.onerror = () => { clearInterval(timer); fallback(); };
     const go = () => {
@@ -96,7 +114,7 @@ function playPart(file, start, end, done, fallback) {   // play one line out of 
 function play(key, text, done) {
   if (settings.voice <= 0) { setTimeout(done, 1200 + text.length * 45); return; }
   const nat = natural[lineId(text)];
-  if (nat && !(key && RECORDED.has(key))) { playPart(nat[0], nat[1], nat[2], done, () => playOther(key, text, done)); return; }
+  if (nat && !(key && RECORDED.has(key))) { playPart(nat[0], nat[1], nat[2], nat[3] || 1, done, () => playOther(key, text, done)); return; }
   playOther(key, text, done);
 }
 function playOther(key, text, done) {

@@ -13,7 +13,7 @@ import { Animal, Rover, RocketSite, Blueprint, RAMP_STEPS } from './entities.js'
 import { HUD, ICONS, wordHTML } from './ui.js';
 import { WORDS, LINES, UI, QUESTS, MISSIONS, CHEST_LOOT, RECIPES, IDEAS, HERO_PARTS, HATS_INFO } from './content.js';
 import { placeIdea, SHAPES } from './ideas.js';
-import { say, isTalking, preloadVoice, sfx, settings as audioSettings, unlockAudio, setSubtitleHandler, stopVoice, startMusic, setMusicMood, setMusicVolume } from './audio.js';
+import { say, dropTag, isTalking, preloadVoice, sfx, settings as audioSettings, unlockAudio, setSubtitleHandler, stopVoice, startMusic, setMusicMood, setMusicVolume } from './audio.js';
 import { tileUV } from './textures.js';
 
 const BOT = location.search.includes('bot');
@@ -1201,6 +1201,7 @@ function startTravel() {
   const toMoon = shuttleAt === 'pad';
   travel = { t: 0, toMoon, from: shuttle.position.clone(), to: toMoon ? moonPad() : earthPad(), moved: false, puff: 0 };
   state.watching = 2; hudRoot.classList.add('cinematic'); sfx.tap();
+  dropTag('step');   // "go to the rocket" is done; the next instruction comes after landing
   say(null, toMoon ? LINES.to_moon : LINES.to_home, { now: true });
 }
 function updateTravel(dt) {
@@ -1280,6 +1281,8 @@ function questIcon(q) {
   return ICONS.rocket;
 }
 const stepSay = (q) => (!touchUI() && q.sayMouse) || q.say || q.text;
+// a mission instruction: skipped if that step is already done by the time it would start, never lost otherwise
+const sayStep = (q, now = false) => say(null, stepSay(q), { tag: 'step', now, valid: () => QUESTS[state.quest] === q && !idea });
 const questHead = (q) => `${UI.mission_n} ${q.mission + 1} · ${MISSIONS[q.mission].title}`;
 function showQuest(speak) {
   if (idea) { updateIdeaGoal(); return; }
@@ -1287,7 +1290,7 @@ function showQuest(speak) {
   if (!q) { hud.setGoal(ICONS.star, UI.free, null, ''); updateHint(); return; }
   hud.setGoal(questIcon(q), q.text, q.n > 1 ? Math.min(1, questValue(q) / q.n) : null, questHead(q));
   updateHint();
-  if (speak) say(null, stepSay(q), { tag: 'step' });
+  if (speak) sayStep(q);
 }
 let introTimer = 0;
 // playtest log (only sent when the dev server's probe is loaded; does nothing in the real game)
@@ -1305,7 +1308,7 @@ function updateStuck(dt) {
   if (stuck.t > (stuck.n === 0 ? 45 : 60)) {
     stuck.t = 0; stuck.n++;
     hud.goalDone(); sfx.card();
-    say(null, stepSay(q), { tag: 'step' });
+    sayStep(q);
     probe('stuck', { step: q.id, reminders: stuck.n });
   }
 }
@@ -1340,7 +1343,7 @@ function checkQuest() {
     introTimer = setTimeout(introStep, 6500);
   } else introTimer = setTimeout(introStep, 900);
 }
-hud.on('goalSpeak', () => { const q = QUESTS[state.quest]; say(null, q ? stepSay(q) : LINES.free, { now: true }); });
+hud.on('goalSpeak', () => { const q = QUESTS[state.quest]; if (q) sayStep(q, true); else say(null, LINES.free, { now: true }); });
 
 // which button glows: the workbench when the next craft is possible, the planks/metal slot, the start button
 function canMake(outIds) { return RECIPES.some((r) => outIds.includes(r.out[0]) && r.in.every(([id, n]) => inv.count(id) >= n)); }
