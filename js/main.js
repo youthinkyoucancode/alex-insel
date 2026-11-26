@@ -17,6 +17,31 @@ import { say, dropTag, isTalking, preloadVoice, sfx, settings as audioSettings, 
 import { tileUV } from './textures.js';
 
 const BOT = location.search.includes('bot');
+// ?diag: a small on-screen panel for a grown-up, showing how this browser handles full screen (nothing is sent anywhere)
+const diagLog = [];
+function diag(msg) {
+  if (!location.search.includes('diag')) return;
+  diagLog.push(`${(performance.now() / 1000).toFixed(1)}s ${msg}`); if (diagLog.length > 8) diagLog.shift();
+  let p = document.getElementById('diag');
+  if (!p) {
+    p = document.createElement('pre'); p.id = 'diag';
+    p.style.cssText = 'position:fixed;left:10px;right:10px;top:25%;z-index:99;margin:0;padding:10px 14px;white-space:pre-wrap;overflow-wrap:anywhere;'
+      + 'font:13px/1.35 monospace;background:rgba(0,0,0,.78);color:#fff;border-radius:10px;pointer-events:none';
+    document.body.append(p);
+    for (const ev of ['fullscreenchange', 'fullscreenerror']) document.addEventListener(ev, () => diag(ev + ' -> ' + (document.fullscreenElement ? 'IN' : 'OUT')));
+    addEventListener('resize', () => diag(`resize ${innerWidth}x${innerHeight}`));
+    document.addEventListener('pointerdown', (e) => diag(`tap y=${Math.round(e.clientY)}`), true);
+    setInterval(() => diag.render?.(), 500);
+  }
+  diag.render = () => {
+    p.textContent = [navigator.userAgent,
+      `window ${innerWidth}x${innerHeight}  screen ${screen.width}x${screen.height}  dpr ${devicePixelRatio}`,
+      `fullscreenEnabled ${document.fullscreenEnabled}  inFullscreen ${!!document.fullscreenElement}  display-mode fullscreen ${matchMedia('(display-mode: fullscreen)').matches} standalone ${matchMedia('(display-mode: standalone)').matches}`,
+      `orientation ${screen.orientation?.type}`, '', ...diagLog].join('\n');
+  };
+  diag.render();
+}
+if (location.search.includes('diag')) addEventListener('load', () => diag('page loaded'));
 const SAVE_KEY = 'alex-insel-v4' + (location.search.includes('test') ? '-test' : '') + (BOT ? '-bot' : '');
 if (BOT) localStorage.removeItem(SAVE_KEY);
 // the 'tiere' goal: visit the lion family (any of them) and the tiger
@@ -1526,9 +1551,10 @@ function showStart() {
     if (!isTouch || document.fullscreenElement || !document.documentElement.requestFullscreen) return;
     if (/AlexInselApp/.test(navigator.userAgent)) return;   // the tablet app is already full screen + landscape
     if (window.matchMedia?.('(display-mode: fullscreen)').matches) return;
+    diag('fullscreen requested');
     document.documentElement.requestFullscreen({ navigationUI: 'hide' })
-      .then(() => screen.orientation?.lock?.('landscape').catch(() => {}))
-      .catch(() => {});
+      .then(() => { diag('fullscreen ok'); return screen.orientation?.lock?.('landscape').catch((e) => diag('rotate lock: ' + e.name)); })
+      .catch((e) => diag('fullscreen refused: ' + (e?.name || e)));
   }
   s.querySelector('.go').onclick = () => {
     unlockAudio();
