@@ -270,7 +270,7 @@ export const UI = {
   s_boom: 'Bumm-Pilze',
   settings: 'Für Eltern',
   s_music: 'Musik', s_voice: 'Stimme', s_sfx: 'Geräusche', s_calm: 'Ruhige Effekte', s_quality: 'Bildqualität',
-  s_fps: 'Bilder pro Sekunde anzeigen', s_time: 'Tageszeit', s_day: 'Tag', s_night: 'Nacht',
+  s_fps: 'Technik-Info anzeigen', s_time: 'Tageszeit', s_day: 'Tag', s_night: 'Nacht',
   s_pause_time: 'Zeit anhalten', s_reset: 'Welt zurücksetzen', s_reset_q: 'Wirklich alles zurücksetzen?',
   credits: 'Stimme: ElevenLabs (elevenlabs.io) · Schrift: Andika (SIL OFL) · 3D: three.js (MIT)',
 };

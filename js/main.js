@@ -17,10 +17,12 @@ import { say, dropTag, isTalking, preloadVoice, sfx, settings as audioSettings, 
 import { tileUV } from './textures.js';
 
 const BOT = location.search.includes('bot');
-// ?diag: a small on-screen panel for a grown-up, showing how this browser handles full screen (nothing is sent anywhere)
+// Technik-Info (parent settings switch, or ?diag): a small on-screen panel for a grown-up, showing frame rate and how
+// this browser handles full screen (nothing is sent anywhere)
 const diagLog = [];
+let diagOn = location.search.includes('diag');
 function diag(msg) {
-  if (!location.search.includes('diag')) return;
+  if (!diagOn) return;
   diagLog.push(`${(performance.now() / 1000).toFixed(1)}s ${msg}`); if (diagLog.length > 8) diagLog.shift();
   let p = document.getElementById('diag');
   if (!p) {
@@ -41,7 +43,7 @@ function diag(msg) {
   };
   diag.render();
 }
-if (location.search.includes('diag')) addEventListener('load', () => diag('page loaded'));
+addEventListener('load', () => diag('page loaded'));
 const SAVE_KEY = 'alex-insel-v4' + (location.search.includes('test') ? '-test' : '') + (BOT ? '-bot' : '');
 if (BOT) localStorage.removeItem(SAVE_KEY);
 // the 'tiere' goal: visit the lion family (any of them) and the tiger
@@ -191,6 +193,7 @@ const controls = new Controls(document.getElementById('touch-layer'), joyEl);
 setSubtitleHandler((text, on) => { hud.showSubtitle(text, on); });
 document.body.classList.toggle('calm', state.settings.calm);
 hud.fps.classList.toggle('hidden', !state.settings.fps);
+if (state.settings.fps) { diagOn = true; setTimeout(() => diag('Technik-Info an'), 0); }
 hud.jumpBtn.classList.toggle('hidden', !isTouch);
 hud.setCamera(state.firstPerson);
 let modalOpen = false;
@@ -1504,7 +1507,7 @@ hud.on('settings', () => {
       if (k === 'sfx') audioSettings.sfx = v;
       if (k === 'calm') document.body.classList.toggle('calm', v);
       if (k === 'quality') applyQuality();
-      if (k === 'fps') hud.fps.classList.toggle('hidden', !v);
+      if (k === 'fps') { hud.fps.classList.toggle('hidden', !v); diagOn = !!v || location.search.includes('diag'); if (diagOn) diag('Technik-Info an'); else document.getElementById('diag')?.remove(); }
       if (k === 'boom' && !v) pilze.forEach((a) => { a.fuse = 0; a.flashMesh.visible = false; a.mesh.scale.setScalar(1); });
       persist();
     },
